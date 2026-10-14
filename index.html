@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Editor Portfolio</title>
+<meta name="description" content="Video editor specializing in talking head, podcast and real estate videos.">
+<meta name="theme-color" content="#000000">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#050505;
+  --fg:#f5f5f5;
+  --mute:#8a8a8a;
+  --line:rgba(255,255,255,.14);
+  --card:#0e0e0e;
+  --display:'Space Grotesk','Inter',sans-serif;
+  --body:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+::selection{background:#fff;color:#000}
+body.locked{overflow:hidden}
+
+/* film grain */
+body::after{content:"";position:fixed;inset:-50%;width:200%;height:200%;pointer-events:none;z-index:90;opacity:.07;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation:grain 1s steps(6) infinite}
+@keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-4%,3%)}40%{transform:translate(3%,-5%)}60%{transform:translate(-5%,-2%)}80%{transform:translate(4%,4%)}100%{transform:translate(0,0)}}
+
+.wrap{width:min(1280px,100% - 48px);margin-inline:auto}
+.mono{font-family:var(--mono);font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+
+/* preloader */
+#loader{position:fixed;inset:0;background:#000;z-index:200;display:flex;align-items:flex-end;justify-content:space-between;padding:32px;transition:transform 1s var(--ease)}
+#loader.done{transform:translateY(-100%)}
+#loader .count{font-family:var(--display);font-weight:700;font-size:clamp(5rem,18vw,16rem);line-height:.8;letter-spacing:-.05em}
+#loader .meta{text-align:right}
+#loader .bar{position:absolute;left:0;top:0;height:3px;background:#fff;width:0}
+
+/* cursor */
+#cursor{position:fixed;left:0;top:0;width:14px;height:14px;border-radius:50%;background:#fff;mix-blend-mode:difference;pointer-events:none;z-index:150;transform:translate(-50%,-50%);transition:width .3s var(--ease),height .3s var(--ease);display:flex;align-items:center;justify-content:center}
+#cursor span{font-family:var(--mono);font-size:.62rem;font-weight:500;color:#000;opacity:0;letter-spacing:.1em}
+#cursor.big{width:88px;height:88px}
+#cursor.big span{opacity:1}
+#cursor.link{width:46px;height:46px}
+@media (hover:none){#cursor{display:none}}
+/* while the video popup is open: use the normal system cursor and hide the custom one */
+body.locked #cursor{opacity:0;visibility:hidden}
+body.locked,body.locked *{cursor:auto!important}
+body.locked a,body.locked button,body.locked .mclose{cursor:pointer!important}
+@media (hover:hover){body,a,button{cursor:none}}
+
+/* nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:22px 0;mix-blend-mode:difference;color:#fff}
+nav .wrap{display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:var(--display);font-weight:700;font-size:1.15rem;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+.logo i{width:10px;height:10px;border-radius:50%;background:#fff;animation:rec 1.4s infinite}
+@keyframes rec{50%{opacity:.15}}
+.links{display:flex;gap:34px;align-items:center}
+.links a{font-size:.88rem;position:relative}
+.links a::after{content:"";position:absolute;left:0;bottom:-4px;height:1px;width:100%;background:#fff;transform:scaleX(0);transform-origin:right;transition:transform .5s var(--ease)}
+.links a:hover::after{transform:scaleX(1);transform-origin:left}
+.pill{border:1px solid #fff;padding:9px 20px;border-radius:99px;transition:.3s}
+.pill:hover{background:#fff;color:#000}
+.pill::after{display:none}
+.burger{display:none;width:34px;height:34px;position:relative}
+.burger i{position:absolute;left:5px;right:5px;height:2px;background:#fff;transition:.4s var(--ease)}
+.burger i:nth-child(1){top:12px}.burger i:nth-child(2){top:20px}
+.burger.open i:nth-child(1){top:16px;transform:rotate(45deg)}
+.burger.open i:nth-child(2){top:16px;transform:rotate(-45deg)}
+#mobmenu{position:fixed;inset:0;background:#000;z-index:95;display:flex;flex-direction:column;justify-content:center;padding:0 32px;gap:6px;transform:translateY(-100%);transition:transform .7s var(--ease)}
+#mobmenu.open{transform:none}
+#mobmenu a{font-family:var(--display);font-weight:700;font-size:clamp(2.4rem,11vw,4rem);letter-spacing:-.04em}
+@media (max-width:820px){.links{display:none}.burger{display:block}}
+
+/* hero */
+.hero{min-height:100svh;display:flex;flex-direction:column;justify-content:flex-end;padding:140px 0 40px;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 50% at 70% 20%,rgba(255,255,255,.1),transparent 70%);pointer-events:none}
+.tag{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);padding:8px 16px;border-radius:99px;margin-bottom:34px}
+.tag b{width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 12px #fff}
+h1{font-family:var(--display);font-weight:700;letter-spacing:-.055em;line-height:.88;font-size:clamp(3.4rem,12.5vw,12rem)}
+h1 .ln{display:block;overflow:hidden;padding-bottom:.06em}
+h1 .ln span{display:inline-block;transform:translateY(110%);transition:transform 1.2s var(--ease)}
+body.ready h1 .ln span{transform:none}
+h1 .ln:nth-child(2) span{transition-delay:.12s}
+h1 .ln:nth-child(3) span{transition-delay:.24s}
+h1 .out{color:transparent;-webkit-text-stroke:2px #fff}
+.hero-bottom{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;margin-top:48px;flex-wrap:wrap}
+.hero-bottom p{max-width:440px;color:#b9b9b9;font-size:1.05rem}
+.btns{display:flex;gap:14px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:12px;padding:16px 30px;border-radius:99px;font-weight:500;font-size:.95rem;border:1px solid #fff;transition:.4s var(--ease)}
+.btn.solid{background:#fff;color:#000}
+.btn.solid:hover{background:transparent;color:#fff}
+.btn.ghost:hover{background:#fff;color:#000}
+.btn svg{width:16px;height:16px;transition:transform .4s var(--ease)}
+.btn:hover svg{transform:translateX(5px)}
+
+/* timeline */
+.timeline{margin-top:60px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02);backdrop-filter:blur(6px);padding:16px 18px 18px;position:relative;overflow:hidden}
+.tl-top{display:flex;justify-content:space-between;margin-bottom:12px}
+.tl-tracks{position:relative}
+.track{height:26px;margin-bottom:6px;position:relative;border-radius:5px;background:rgba(255,255,255,.03)}
+.clip{position:absolute;top:2px;bottom:2px;border-radius:4px;background:#fff;color:#000;font-family:var(--mono);font-size:.6rem;padding:4px 8px;overflow:hidden;white-space:nowrap;opacity:0;transform:scaleX(.6);transform-origin:left;transition:.7s var(--ease)}
+.clip.g{background:#4a4a4a;color:#fff}
+.clip.m{background:#cfcfcf}
+.clip.a{background:repeating-linear-gradient(90deg,#777 0 2px,#333 2px 4px);color:#fff}
+body.ready .clip{opacity:1;transform:none}
+.playhead{position:absolute;top:-6px;bottom:-6px;width:1px;background:#fff;left:0;box-shadow:0 0 14px #fff;z-index:2}
+.playhead::before{content:"";position:absolute;top:0;left:-5px;border:5px solid transparent;border-top:8px solid #fff}
+
+/* marquee */
+.marquee{border-block:1px solid var(--line);overflow:hidden;padding:26px 0;margin-top:40px}
+.marquee .t{display:flex;gap:60px;width:max-content;animation:mq 32s linear infinite;font-family:var(--display);font-weight:700;font-size:clamp(1.6rem,4vw,3rem);letter-spacing:-.03em;text-transform:uppercase;white-space:nowrap}
+.marquee .t span:nth-child(even){color:transparent;-webkit-text-stroke:1px #fff}
+@keyframes mq{to{transform:translateX(-50%)}}
+
+/* sections */
+section{padding:clamp(80px,12vw,160px) 0}
+.sh{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;flex-wrap:wrap;margin-bottom:56px}
+h2{font-family:var(--display);font-weight:700;font-size:clamp(2.4rem,7vw,6rem);letter-spacing:-.05em;line-height:.95}
+h2 em{font-style:normal;color:transparent;-webkit-text-stroke:1.5px #fff}
+
+.rv{opacity:0;transform:translateY(46px);transition:opacity 1s var(--ease),transform 1s var(--ease)}
+.rv.in{opacity:1;transform:none}
+
+/* work */
+.filters{display:flex;gap:10px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);padding:9px 20px;border-radius:99px;font-size:.84rem;color:#bbb;transition:.3s}
+.chip:hover{border-color:#fff;color:#fff}
+.chip.on{background:#fff;color:#000;border-color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:22px}
+.card{position:relative;display:block;text-align:left}
+.card.hide{display:none}
+.thumb{position:relative;aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:#111;border:1px solid var(--line)}
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.1);transform:scale(1.04);transition:transform 1.2s var(--ease),filter .8s}
+.card:hover .thumb img{transform:scale(1.1);filter:grayscale(0) contrast(1.05)}
+.thumb .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-size:clamp(3rem,9vw,8rem);letter-spacing:-.05em;color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.28);
+  background:repeating-linear-gradient(135deg,#0c0c0c 0 18px,#101010 18px 36px)}
+.thumb::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,.75));pointer-events:none}
+.badge{position:absolute;top:16px;left:16px;z-index:2;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);border:1px solid var(--line);padding:6px 12px;border-radius:99px}
+.dur{position:absolute;right:16px;bottom:14px;z-index:2}
+.cap{display:flex;justify-content:space-between;align-items:baseline;padding:18px 4px 0;gap:20px}
+.cap h3{font-family:var(--display);font-weight:500;font-size:1.1rem;line-height:1.25;letter-spacing:-.02em}
+.cap .arr{width:38px;height:38px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;flex:none;transition:.4s var(--ease)}
+.card:hover .arr{background:#fff;color:#000;transform:rotate(-45deg)}
+.arr svg{width:16px;height:16px}
+.more{margin-top:56px;text-align:center}
+@media (max-width:620px){.grid{grid-template-columns:repeat(2,1fr);gap:12px}.cap h3{font-size:1rem}.cap .arr{display:none}.badge{top:10px;left:10px}}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));border-block:1px solid var(--line)}
+.stat{padding:48px 24px;border-right:1px solid var(--line)}
+.stat:last-child{border:0}
+.stat b{display:block;font-family:var(--display);font-size:clamp(2.6rem,6vw,5.4rem);letter-spacing:-.05em;line-height:1}
+@media (max-width:520px){.stat{border-right:0;border-bottom:1px solid var(--line)}.stat:last-child{border-bottom:0}}
+
+/* about */
+.about{display:grid;grid-template-columns:1.1fr 1fr;gap:70px;align-items:start}
+.about p{font-size:clamp(1.1rem,1.7vw,1.5rem);color:#d0d0d0;line-height:1.55;margin-bottom:24px;letter-spacing:-.01em}
+.about p strong{color:#fff;font-weight:500}
+.tools{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
+.tools span{border:1px solid var(--line);padding:9px 18px;border-radius:99px;font-size:.85rem;transition:.3s}
+.tools span:hover{background:#fff;color:#000}
+@media (max-width:860px){.about{grid-template-columns:1fr;gap:30px}}
+
+/* services */
+.svc{border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:80px 1.2fr 2fr 40px;gap:30px;align-items:center;padding:36px 8px;border-bottom:1px solid var(--line);position:relative;transition:padding .5s var(--ease),background .5s}
+.row:hover{background:#fff;color:#000;padding-inline:28px}
+.row:hover .mono,.row:hover p{color:#222}
+.row h3{font-family:var(--display);font-weight:700;font-size:clamp(1.5rem,3.4vw,2.8rem);letter-spacing:-.04em;line-height:1}
+.row p{color:#a8a8a8;max-width:520px;transition:color .4s}
+.row svg{width:22px;height:22px;transition:transform .5s var(--ease)}
+.row:hover svg{transform:rotate(-45deg)}
+@media (max-width:860px){.row{grid-template-columns:44px 1fr;gap:12px 16px}.row p{grid-column:2}.row svg{display:none}.row:hover{padding-inline:8px}}
+
+/* process */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;counter-reset:s}
+.step{border:1px solid var(--line);border-radius:16px;padding:30px 26px 34px;background:var(--card);position:relative;overflow:hidden;transition:.5s var(--ease)}
+.step:hover{transform:translateY(-8px);border-color:#fff}
+.step .n{font-family:var(--display);font-weight:700;font-size:5rem;letter-spacing:-.06em;line-height:1;color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.4);margin-bottom:60px}
+.step h3{font-family:var(--display);font-size:1.4rem;letter-spacing:-.03em;margin-bottom:10px}
+.step p{color:#9a9a9a;font-size:.95rem}
+@media (max-width:980px){.steps{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.steps{grid-template-columns:1fr}.step .n{margin-bottom:30px}}
+
+/* contact */
+.cta{text-align:center;padding-block:clamp(90px,14vw,190px)}
+.cta h2{font-size:clamp(3rem,11vw,10.5rem);line-height:.9;margin-bottom:44px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px;max-width:960px;margin:56px auto 0;text-align:left}
+.ccard{border:1px solid var(--line);border-radius:18px;padding:28px 26px;background:var(--card);display:flex;flex-direction:column;gap:14px;transition:border-color .4s,transform .5s var(--ease)}
+.ccard:hover{border-color:#fff;transform:translateY(-6px)}
+.ccard .val{font-family:var(--display);font-weight:700;font-size:clamp(1.25rem,2.4vw,1.7rem);letter-spacing:-.03em;line-height:1.2;word-break:break-word}
+.ccard .acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:auto;padding-top:6px}
+.btn.sm{padding:10px 20px;font-size:.84rem}
+
+footer{border-top:1px solid var(--line);padding:30px 0 40px}
+footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+.soc{display:flex;gap:26px}
+.soc a{font-size:.88rem;color:#aaa;transition:.3s}
+.soc a:hover{color:#fff}
+
+/* modal */
+#modal{position:fixed;inset:0;z-index:180;background:rgba(0,0,0,.94);backdrop-filter:blur(10px);display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .5s}
+#modal.open{opacity:1;pointer-events:auto}
+.mbox{width:min(440px,100%,calc((100vh - 230px) * 9 / 16));width:min(440px,100%,calc((100dvh - 230px) * 9 / 16));min-width:min(100%,240px);margin:auto;padding-top:44px;transform:scale(.94) translateY(20px);transition:transform .7s var(--ease)}
+#modal.open .mbox{transform:none}
+.mhead{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px;gap:20px}
+.mhead h3{font-family:var(--display);font-size:clamp(1.3rem,3vw,2.2rem);letter-spacing:-.04em}
+.mclose{position:fixed;top:18px;right:18px;z-index:5;background:#000;border:1px solid rgba(255,255,255,.4);border-radius:99px;padding:10px 22px;font-size:.88rem;transition:.3s}
+.mclose:hover{background:#fff;color:#000}
+.frame{position:relative;aspect-ratio:9/16;background:#0a0a0a;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;z-index:1}
+.frame::before{content:"";position:absolute;left:50%;top:50%;width:38px;height:38px;margin:-19px 0 0 -19px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+.frame:has(.empty)::before{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.frame .empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:20px}
+.mdesc{margin-top:16px;color:#9a9a9a;max-width:700px}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition-duration:.01ms!important}
+  .rv{opacity:1;transform:none}
+  h1 .ln span{transform:none}
+}
+</style>
+</head>
+<body>
+
+<!-- Preloader -->
+<div id="loader" aria-hidden="true">
+  <div class="bar" id="lbar"></div>
+  <div class="mono">Loading reel</div>
+  <div class="meta"><div class="count" id="lcount">0</div></div>
+</div>
+
+<div id="cursor"><span>PLAY</span></div>
+
+<nav>
+  <div class="wrap">
+    <a href="#top" class="logo"><i></i><span data-name>Your Name</span></a>
+    <div class="links">
+      <a href="#work">Work</a>
+      <a href="#about">About</a>
+      <a href="#services">Services</a>
+      <a href="#process">Process</a>
+      <a href="#contact" class="pill">Hire me</a>
+    </div>
+    <button class="burger" id="burger" aria-label="Menu"><i></i><i></i></button>
+  </div>
+</nav>
+<div id="mobmenu">
+  <a href="#work">Work</a><a href="#about">About</a><a href="#services">Services</a><a href="#process">Process</a><a href="#contact">Hire me</a>
+</div>
+
+<!-- HERO -->
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="tag mono"><b></b> Open to remote work · Trial edits welcome</div>
+    <h1>
+      <span class="ln"><span>Talking heads</span></span>
+      <span class="ln"><span class="out">people won't</span></span>
+      <span class="ln"><span>skip past.</span></span>
+    </h1>
+
+    <div class="hero-bottom">
+      <p>Short-form video editor for creators, podcasters and businesses. Talking heads, podcast clips and real estate videos with clean cuts, strong hooks and captions that keep people watching.</p>
+      <div class="btns">
+        <a href="#work" class="btn solid" data-hover>View work
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a href="#contact" class="btn ghost" data-hover>Let's talk</a>
+      </div>
+    </div>
+
+    <div class="timeline" aria-hidden="true">
+      <div class="tl-top mono"><span>Sequence 01 · Talking Head</span><span id="tc">00:00:00:00</span></div>
+      <div class="tl-tracks" id="tracks"><div class="playhead" id="ph"></div></div>
+    </div>
+  </div>
+</header>
+
+<div class="marquee" aria-hidden="true">
+  <div class="t" id="mq"></div>
+</div>
+
+<!-- WORK -->
+<section id="work">
+  <div class="wrap">
+    <div class="sh rv">
+      <h2>Selected<br><em>work</em></h2>
+      <div class="filters" id="filters"></div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="more rv">
+      <a class="btn ghost" id="morebtn" target="_blank" rel="noopener" data-hover>See more on YouTube
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="wrap">
+  <div class="stats rv" id="stats"></div>
+</div>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="wrap about">
+    <div class="rv">
+      <div class="mono" style="margin-bottom:22px">( About )</div>
+      <h2>Edits that<br><em>feel</em> intentional.</h2>
+    </div>
+    <div class="rv">
+      <p>I'm Jasper, a 19-year-old video editor from Cavite. I find the <strong>most interesting, useful or funny moments</strong> in raw footage and turn them into videos that are clear and easy to watch.</p>
+      <p>I focus on purposeful editing: clean cuts, good pacing, hooks, captions and relevant B-roll, without piling on effects that distract from the message. I'm building my portfolio and I'm comfortable following a brief, working from references and making revisions.</p>
+      <p id="aboutExtra"></p>
+      <div class="tools" id="tools"></div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section id="services" style="padding-top:0">
+  <div class="wrap">
+    <div class="sh rv"><h2>What I<br><em>do</em></h2></div>
+    <div class="svc rv" id="svc"></div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section id="process" style="padding-top:0">
+  <div class="wrap">
+    <div class="sh rv"><h2>How we<br><em>work</em></h2><p class="mono">Simple. Fast. No surprises.</p></div>
+    <div class="steps">
+      <div class="step rv"><div class="n">01</div><h3>Brief</h3><p>You send footage and references. We align on goal, audience, tone and deadline.</p></div>
+      <div class="step rv"><div class="n">02</div><h3>First cut</h3><p>I build the story, pacing and sound. You get a rough cut fast to react to.</p></div>
+      <div class="step rv"><div class="n">03</div><h3>Polish</h3><p>Color, motion graphics, mix and captions. Revisions until it's exactly right.</p></div>
+      <div class="step rv"><div class="n">04</div><h3>Delivery</h3><p>Final files in every format you need, optimized for each platform.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact" class="cta" style="padding-bottom:60px">
+  <div class="wrap">
+    <div class="mono rv" style="margin-bottom:26px">( Got a project? )</div>
+    <h2 class="rv">Let's make<br><em>something</em><br>unforgettable.</h2>
+    <p class="rv" style="color:#b9b9b9;max-width:520px;margin:0 auto 34px">Rates depend on video length and complexity. Per-video or monthly, and I'm happy to do a trial edit.</p>
+    <div class="cards rv">
+      <div class="ccard">
+        <span class="mono">Email</span>
+        <span class="val" id="emailVal"></span>
+        <div class="acts">
+          <button class="btn solid sm" data-copy="email" data-hover>Copy email</button>        </div>
+      </div>
+      <div class="ccard">
+        <span class="mono">Phone</span>
+        <span class="val" id="phoneVal"></span>
+        <div class="acts">
+          <button class="btn solid sm" data-copy="phone" data-hover>Copy number</button>        </div>
+      </div>
+      <div class="ccard">
+        <span class="mono">Based in</span>
+        <span class="val" id="locVal"></span>
+        <div class="acts"><span style="color:#9a9a9a;font-size:.92rem">Available for remote work worldwide.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">© <span id="yr"></span> <span data-name>Your Name</span></span>
+    <div class="soc" id="soc"></div>
+    <a href="#top" class="mono" data-hover>Back to top ↑</a>
+  </div>
+</footer>
+
+<!-- Video modal -->
+<div id="modal" role="dialog" aria-modal="true" aria-label="Video player">
+  <button class="mclose" id="mclose" data-hover>Close ✕</button>
+  <div class="mbox">
+    <div class="mhead">
+      <div><div class="mono" id="mcat"></div><h3 id="mtitle"></h3></div>
+    </div>
+    <div class="frame" id="frame"></div>
+    <p class="mdesc" id="mdesc"></p>
+    <a class="mono" id="ytlink" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;border-bottom:1px solid var(--line)">Open on YouTube ↗</a>
+  </div>
+</div>
+
+<script>
+/* ==========================================================
+   EDIT THIS BLOCK ONLY — everything else runs by itself
+   ========================================================== */
+const CONFIG = {
+  name: "Jasper Grado",
+  email: "jaspergrado262@gmail.com",
+  phone: "+63 991 212 2154",
+  location: "Cavite, Philippines",
+  youtubeChannel: "",                      // <- optional: your YouTube channel link (shows a "More work" button + footer link)
+  socials: [                               // add Instagram, TikTok, etc. here when you have them
+    { label: "Email", url: "mailto:jaspergrado262@gmail.com" }
+  ],
+  aboutExtra: "Based in Cavite, Philippines, and open to remote work, one-off projects and ongoing monthly editing.",
+  tools: ["CapCut Desktop", "Canva", "VEED", "ElevenLabs", "ChatGPT", "Claude"],
+  stats: [                                 // n = number to count up, or t = text to show as-is
+    { n: 9,  s: "",  l: "Featured edits" },
+    { n: 3,  s: "",  l: "Niches" },
+    { t: "5–8", l: "Short-form videos per week" }
+  ],
+  /* PROJECTS
+     youtube = paste the YouTube link of the video (Unlisted is fine). Any link format works.
+     A project only appears on the site once its youtube link is filled in. */
+  projects: [
+    { title: "Talking Head UGC",                    cat: "Talking Head", youtube: "https://youtube.com/shorts/PDpdLBOVGKQ", desc: "Short-form talking head edit in a UGC style." },
+    { title: "Talking Head 01",                     cat: "Talking Head", youtube: "https://youtube.com/shorts/GyIZSwY30vY", desc: "Short-form talking head edit with clean cuts and captions." },
+    { title: "Talking Head 02",                     cat: "Talking Head", youtube: "https://youtube.com/shorts/6Ps67WgZNMc", desc: "Short-form talking head edit focused on pacing and flow." },
+    { title: "Talking Head Tutorial",               cat: "Talking Head", youtube: "https://youtube.com/shorts/z-pxonNv7Ps", desc: "Tutorial-style talking head short." },
+    { title: "Tutorial",                            cat: "Talking Head", youtube: "https://youtube.com/shorts/8QGe6fK_JNU", desc: "Short-form tutorial edit." },
+    { title: "Podcast Clip 01",                     cat: "Podcast",      youtube: "https://youtube.com/shorts/WXqxVhv4zMg", desc: "Podcast highlight turned into a short-form clip." },
+    { title: "Podcast Clip 02",                     cat: "Podcast",      youtube: "https://youtube.com/shorts/U23SrQOG9eY", desc: "Podcast highlight turned into a short-form clip." },
+    { title: "Podcast Talking Head",                cat: "Podcast",      youtube: "https://youtube.com/shorts/v8HASxw0xlw", desc: "Podcast talking head short." },
+    { title: "Real Estate Walkthrough",             cat: "Real Estate",  youtube: "https://youtube.com/shorts/UE0A2N4EK4E", desc: "Full-body talking video combined with a house tour." },
+    { title: "Real Estate Talking Head",            cat: "Real Estate",  youtube: "https://youtube.com/shorts/mLSRdRRTia0", desc: "Real estate talking head short." },
+    { title: "Before You Buy a House",              cat: "Real Estate",  youtube: "https://youtube.com/shorts/eE0vvOq13oQ", desc: "Talking head short with advice for home buyers." },
+    { title: "Real Estate Short",                   cat: "Real Estate",  youtube: "https://youtube.com/shorts/JQ9XktE9JLc", desc: "Short-form real estate edit." },
+    { title: "Restaurant Montage",                  cat: "Montage",      youtube: "https://youtube.com/shorts/Dl0ejxXdQJs", desc: "Short-form restaurant montage edit." },
+    { title: "Racing Montage + Talking Head",       cat: "Montage",      youtube: "https://youtube.com/shorts/rcafdHH0X3w", desc: "Racing montage with a short talking head segment." }
+  ],
+  services: [
+    ["Short-form editing", "Reels, TikToks and YouTube Shorts with strong hooks, fast pacing and clean cuts."],
+    ["Talking head videos", "Dead space and repeats removed, zoom-ins, B-roll and captions that keep the message clear."],
+    ["Podcast clips", "Finding the best moments in long recordings and turning them into shareable clips."],
+    ["Real estate videos", "Property and promotional videos edited to look clean and professional."],
+    ["Captions & polish", "Dynamic captions, simple text animation, music, sound effects, transitions and overlays."]
+  ]
+};
+/* ========================================================== */
+
+const $ = (s, r=document) => r.querySelector(s);
+/* accepts a full YouTube link (watch, youtu.be, shorts, embed) or just the 11-character ID */
+function ytId(v){
+  if(!v) return '';
+  const m = String(v).trim().match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/|\/live\/)([A-Za-z0-9_-]{11})/);
+  if(m) return m[1];
+  return /^[A-Za-z0-9_-]{11}$/.test(String(v).trim()) ? String(v).trim() : '';
+}
+const arrow = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+
+/* basic content */
+document.querySelectorAll('[data-name]').forEach(e => e.textContent = CONFIG.name);
+document.title = CONFIG.name + " — Video Editor";
+$('#yr').textContent = new Date().getFullYear();
+$('#aboutExtra').textContent = CONFIG.aboutExtra;
+if(CONFIG.youtubeChannel){ $('#morebtn').href = CONFIG.youtubeChannel; CONFIG.socials.unshift({ label: "YouTube", url: CONFIG.youtubeChannel }); }
+else { $('#morebtn').closest('.more').style.display = 'none'; }
+$('#emailVal').textContent = CONFIG.email;
+$('#phoneVal').textContent = CONFIG.phone;
+$('#locVal').textContent = CONFIG.location;
+$('#tools').innerHTML = CONFIG.tools.map(t => `<span>${t}</span>`).join('');
+$('#soc').innerHTML = CONFIG.socials.map(s => `<a href="${s.url}" target="_blank" rel="noopener">${s.label}</a>`).join('');
+
+/* marquee */
+const words = ["Short-form","Talking head","Podcast clips","Real estate","Captions","Hooks","Pacing"];
+$('#mq').innerHTML = [...words, ...words].map(w => `<span>${w}</span><span>✦</span>`).join('');
+
+/* services */
+$('#svc').innerHTML = CONFIG.services.map((s,i) =>
+  `<div class="row" data-hover><span class="mono">0${i+1}</span><h3>${s[0]}</h3><p>${s[1]}</p>${arrow}</div>`).join('');
+
+/* stats */
+const _cnt = CONFIG.projects.filter(p => ytId(p.youtube));
+CONFIG.stats[0].n = _cnt.length; CONFIG.stats[1].n = new Set(_cnt.map(p => p.cat)).size;
+$('#stats').innerHTML = CONFIG.stats.filter(s => s.t || s.n > 0).map(s =>
+  `<div class="stat"><b>${s.t ? s.t : `<span data-to="${s.n}">0</span>${s.s||''}`}</b><span class="mono">${s.l}</span></div>`).join('');
+
+/* work grid */
+const PROJECTS = CONFIG.projects.filter(p => ytId(p.youtube));
+const cats = ["All", ...new Set(PROJECTS.map(p => p.cat))];
+$('#filters').innerHTML = cats.map((c,i) => `<button class="chip ${i?'':'on'}" data-c="${c}" data-hover>${c}</button>`).join('');
+$('#grid').innerHTML = PROJECTS.map((p,i) => {
+  const yid = ytId(p.youtube);
+  const src = `https://i.ytimg.com/vi/${yid}/hqdefault.jpg`;
+  const img = `<img loading="lazy" alt="${p.title}" src="${src}" onerror="this.remove()">`;
+  return `<button class="card rv ${p.wide?'wide':''}" data-i="${i}" data-cat="${p.cat}" data-play>
+    <div class="thumb"><div class="ph">${String(i+1).padStart(2,'0')}</div>${img}
+      <span class="badge mono">${p.cat}</span>${p.dur ? `<span class="dur mono">${p.dur}</span>` : ''}</div>
+    <div class="cap"><h3>${p.title}</h3><span class="arr">${arrow}</span></div>
+  </button>`;
+}).join('');
+
+if(!PROJECTS.length){
+  $('#filters').style.display = 'none';
+  $('#grid').innerHTML = '<p class="mono" style="grid-column:1/-1;padding:60px 0;text-align:center">New edits uploading soon.</p>';
+}
+$('#filters').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if(!b) return;
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === b));
+  const c = b.dataset.c;
+  document.querySelectorAll('.card').forEach(card => {
+    card.classList.toggle('hide', c !== 'All' && card.dataset.cat !== c);
+    card.classList.add('in');
+  });
+});
+
+/* modal */
+const modal = $('#modal');
+function openVideo(i){
+  const p = PROJECTS[i];
+  $('#mtitle').textContent = p.title;
+  $('#mcat').textContent = p.dur ? p.cat + " · " + p.dur : p.cat;
+  $('#mdesc').textContent = p.desc || "";
+  const yt = ytId(p.youtube);
+  $('#frame').innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&rel=0&modestbranding=1&playsinline=1" title="${p.title}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
+  $('#ytlink').href = 'https://www.youtube.com/shorts/' + yt;
+  cur.classList.remove('big','link');
+  modal.classList.add('open'); document.body.classList.add('locked');
+}
+function closeVideo(){
+  modal.classList.remove('open'); document.body.classList.remove('locked');
+  cur.classList.remove('big','link');          // reset the custom cursor so it isn't stuck on "PLAY"
+  setTimeout(()=>$('#frame').innerHTML='',500);
+}
+$('#grid').addEventListener('click', e => { const c = e.target.closest('.card'); if(c) openVideo(+c.dataset.i); });
+$('#mclose').onclick = closeVideo;
+modal.addEventListener('click', e => { if(e.target === modal) closeVideo(); });
+addEventListener('keydown', e => { if(e.key === 'Escape') closeVideo(); });
+
+/* copy email / phone to clipboard */
+document.querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('click', async () => {
+  const text = btn.dataset.copy === 'email' ? CONFIG.email : CONFIG.phone;
+  try { await navigator.clipboard.writeText(text); }
+  catch(err){
+    const t = document.createElement('textarea'); t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';
+    document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); } catch(e2){}
+    t.remove();
+  }
+  const old = btn.textContent; btn.textContent = 'Copied ✓';
+  setTimeout(() => btn.textContent = old, 1800);
+}));
+
+/* mobile menu */
+const burger = $('#burger'), mob = $('#mobmenu');
+burger.onclick = () => { burger.classList.toggle('open'); mob.classList.toggle('open'); };
+mob.querySelectorAll('a').forEach(a => a.onclick = () => { burger.classList.remove('open'); mob.classList.remove('open'); });
+
+/* hero timeline */
+(function(){
+  const tr = $('#tracks'), spec = [
+    [["HOOK",0,12,""],["TALKING HEAD",13,24,"m"],["PUNCH-IN",38,8,""],["TALKING HEAD",47,22,"m"],["PUNCH-IN",70,8,""],["CTA",79,21,""]],
+    [["B-ROLL",10,14,"g"],["TITLE",30,10,"m"],["B-ROLL",50,16,"g"],["LOWER THIRD",72,12,"m"]],
+    [["CAPTIONS",0,100,"g"]],
+    [["VOICE",0,100,"a"]]
+  ];
+  spec.forEach(row => {
+    const t = document.createElement('div'); t.className = 'track';
+    row.forEach((c,i) => {
+      const d = document.createElement('div'); d.className = 'clip ' + c[3];
+      d.style.left = c[1] + '%'; d.style.width = (c[2]-.6) + '%'; d.style.transitionDelay = (.5 + i*.08) + 's';
+      d.textContent = c[0]; t.appendChild(d);
+    });
+    tr.insertBefore(t, $('#ph'));
+  });
+  const ph = $('#ph'), tc = $('#tc'); let x = 0, last = performance.now();
+  function tick(now){
+    x = (x + (now - last) * 0.0045) % 100; last = now;
+    ph.style.left = x + '%';
+    const f = Math.floor(x / 100 * 90 * 24);
+    const p = n => String(n).padStart(2,'0');
+    tc.textContent = `00:${p(Math.floor(f/24/60))}:${p(Math.floor(f/24)%60)}:${p(f%24)}`;
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+
+/* scroll reveal + counters */
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if(!e.isIntersecting) return;
+  e.target.classList.add('in'); io.unobserve(e.target);
+  e.target.querySelectorAll('[data-to]').forEach(n => {
+    const to = +n.dataset.to, t0 = performance.now();
+    (function f(t){ const k = Math.min((t - t0)/1600, 1); n.textContent = Math.round(to * (1 - Math.pow(1 - k, 4))); if(k < 1) requestAnimationFrame(f); })(t0);
+  });
+}), { threshold: .12 });
+document.querySelectorAll('.rv').forEach(el => io.observe(el));
+
+/* cursor */
+const cur = $('#cursor');
+addEventListener('mousemove', e => { cur.style.left = e.clientX + 'px'; cur.style.top = e.clientY + 'px'; });
+document.addEventListener('mouseover', e => {
+  const t = e.target;
+  cur.classList.toggle('big', !!t.closest('[data-play]'));
+  cur.classList.toggle('link', !t.closest('[data-play]') && !!t.closest('a,button,[data-hover]'));
+});
+
+/* preloader */
+(function(){
+  const c = $('#lcount'), b = $('#lbar'), L = $('#loader'); let n = 0;
+  const iv = setInterval(() => {
+    n += Math.ceil(Math.random() * 7);
+    if(n >= 100){ n = 100; clearInterval(iv); setTimeout(() => { L.classList.add('done'); document.body.classList.add('ready'); }, 250); }
+    c.textContent = n; b.style.width = n + '%';
+  }, 55);
+})();
+</script>
+</body>
+</html>
